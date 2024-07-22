@@ -1,0 +1,78 @@
+name: Automated API Test using CI pipelines through Postman
+
+on: push
+
+env:
+  POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+jobs:
+  automated-api-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: progetto
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d progetto"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Build and start services
+        run: docker-compose up -d
+
+      - name: Wait for server to be ready
+        run: |
+          for i in {1..30}; do
+            if curl --output /dev/null --silent --head --fail http://127.0.0.1:3000; then
+              echo "Server is up!"
+              break
+            fi
+            echo "Waiting for server..."
+            sleep 1
+          done
+
+      - name: Install Newman
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-html
+
+      - name: Fetch Postman collection
+        run: |
+          curl -X GET "https://api.getpostman.com/collections/36297486-9b41a28f-25d1-47f5-b1fe-ff78523293fe" \
+            -H "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" > collection.json
+
+      - name: Fetch Postman environment
+        run: |
+          curl -X GET "https://api.getpostman.com/environments/36297486-5b187887-c407-4fc8-b16d-0f58ac5c4e66" \
+            -H "X-Api-Key: ${{ secrets.POSTMAN_API_KEY }}" > environment.json
+            
+      - name: Run API test
+        run: |
+          newman run collection.json -e environment.json --reporters cli,html --reporter-html-export report.html --verbose
+          
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: report.html
+
+      - name: Shut down services
+        run: docker-compose down
