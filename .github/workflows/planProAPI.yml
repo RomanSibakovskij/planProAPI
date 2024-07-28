@@ -32,12 +32,7 @@ jobs:
 
       - name: Install backend dependencies
         run: npm install
-        working-directory: ./server 
-
-      - name: List npm scripts
-        run: npm run
         working-directory: ./server   
-
 
       - name: Set up Docker Compose
         run: |
