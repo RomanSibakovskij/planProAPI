@@ -30,6 +30,10 @@ jobs:
         with:
           node-version: '20.x'
 
+      - name: Install backend dependencies
+        run: npm install
+        working-directory: ./server    
+
       - name: Set up Docker Compose
         run: |
           sudo apt-get update
