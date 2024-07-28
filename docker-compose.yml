@@ -1,4 +1,4 @@
-# version: '3.8'
+version: '3.8'
 
 services:
   nginx:
@@ -10,7 +10,9 @@ services:
       - '5173:80'
     depends_on:
       - client
-      
+    networks:
+      - my_network
+
   server:
     build: ./server
     ports:
@@ -23,6 +25,8 @@ services:
     depends_on:
       - dbMongo
       - dbPostgres
+    networks:
+      - my_network
 
   client:
     build: ./client
@@ -31,6 +35,8 @@ services:
     volumes:
       - ./client:/app
       - /app/node_modules
+    networks:
+      - my_network
 
   dbMongo:
     image: mongo:4.4.18
@@ -38,6 +44,8 @@ services:
       - mongodb_data:/data/db
     ports:
       - '27017:27017'
+    networks:
+      - my_network
 
   dbPostgres:
     image: postgres:13-alpine
@@ -50,6 +58,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - my_network
 
   pgadmin:
     image: dpage/pgadmin4
@@ -60,8 +70,14 @@ services:
     depends_on:
       dbPostgres:
         condition: service_healthy
+    networks:
+      - my_network
 
 volumes:
   mongodb_data:
   postgres_data:
   node_modules:
+
+networks:
+  my_network:
+    driver: bridge
