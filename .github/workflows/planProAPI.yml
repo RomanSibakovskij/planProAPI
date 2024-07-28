@@ -40,14 +40,18 @@ jobs:
 
       - name: Wait for server to be ready
         run: |
-          for i in {1..30}; do
-            if curl --output /dev/null --silent --head --fail http://server:3000; then
+          for i in {1..60}; do
+            if curl --output /dev/null --silent --head --fail http://server:3000/health; then
               echo "Server is up!"
               break
             fi
-            echo "Waiting for server..."
-            sleep 1
+            echo "Waiting for server to be ready..."
+            sleep 2
           done
+          if [ $i -eq 60 ]; then
+            echo "Server did not become ready in time"
+            exit 1
+          fi
 
       - name: Install Newman
         run: |
